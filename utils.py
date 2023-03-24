@@ -16,29 +16,34 @@ def minimized_angle(angle):
 
 
 
-def get_obs(env, car_id):
+def get_obs(env, car_id, resolution):
     car_pos, car_orient = env.p.getBasePositionAndOrientation(car_id)
     steering = env.p.getEulerFromQuaternion(car_orient)[2]
-
+    
+    camera_height = 0.2
+    
     # front camera
-    front_cam = np.array([car_pos[0] + np.cos(steering) * 0.2, car_pos[1] + np.sin(steering) * 0.2, car_pos[2]+0.2])
-    front_cam_to = np.array([car_pos[0] + np.cos(steering ) * 10, car_pos[1] + np.sin(steering) * 10, car_pos[2]+0.2])
+    #front_cam = np.array([car_pos[0] + np.cos(steering) * 0.2, car_pos[1] + np.sin(steering) * 0.2, car_pos[2]+camera_height])
+    front_cam = np.array(car_pos) + [0,0,camera_height]
+    front_cam_to = np.array([car_pos[0] + np.cos(steering ) * 10, car_pos[1] + np.sin(steering) * 10, car_pos[2]+camera_height])
 
     # back camera
-    back_cam = np.array(car_pos)
-    back_cam_to = np.array([car_pos[0] + np.cos(steering+np.pi) * 10, car_pos[1] + np.sin(steering+np.pi) * 10, car_pos[2]+0.2])
+    back_cam = np.array(car_pos) + [0,0,camera_height]
+    back_cam_to = np.array([car_pos[0] + np.cos(steering+np.pi) * 10, car_pos[1] + np.sin(steering+np.pi) * 10, car_pos[2]+camera_height])
 
 
     # left camera
-    left_cam = np.array([car_pos[0] + np.cos(steering) * 0.1, car_pos[1] + np.sin(steering) * 0.1, car_pos[2]+0.2])
+    #left_cam = np.array([car_pos[0] + np.cos(steering) * 0.1, car_pos[1] + np.sin(steering) * 0.1, car_pos[2]+0.2])
+    left_cam = np.array(car_pos) + [0,0,camera_height]
     left_cam_to = np.array(
-        [car_pos[0] + np.cos(steering + np.pi/2) * 10, car_pos[1] + np.sin(steering + np.pi/2) * 10, car_pos[2]+0.2])
+        [car_pos[0] + np.cos(steering + np.pi/2) * 10, car_pos[1] + np.sin(steering + np.pi/2) * 10, car_pos[2]+camera_height])
 
     # right camera
-    right_cam =  np.array([car_pos[0] + np.cos(steering) * 0.1, car_pos[1] + np.sin(steering) * 0.1, car_pos[2]+0.2])
+    #right_cam =  np.array([car_pos[0] + np.cos(steering) * 0.1, car_pos[1] + np.sin(steering) * 0.1, car_pos[2]+0.2])
+    right_cam = np.array(car_pos) + [0,0,camera_height]
     right_cam_to = np.array(
         [car_pos[0] + np.cos(steering - np.pi / 2) * 10, car_pos[1] + np.sin(steering - np.pi / 2) * 10,
-         car_pos[2] + 0.2])
+         car_pos[2] + camera_height])
 
 
 
@@ -57,15 +62,15 @@ def get_obs(env, car_id):
         )
         # Define the camera projection matrix
         projection_matrix = env.p.computeProjectionMatrixFOV(
-            fov=45,
+            fov=90,
             aspect=1.0,
             nearVal=0.1,
             farVal=100.0
         )
         # Add the camera to the scene
         _,_,rgb,depth,segm = env.p.getCameraImage(
-            width = 512,
-            height = 512,
+            width = resolution,
+            height = resolution,
             viewMatrix=view_matrix,
             projectionMatrix=projection_matrix,
             renderer=env.p.ER_BULLET_HARDWARE_OPENGL
