@@ -45,11 +45,14 @@ class Field:
     }
 
 
-    def __init__(self, alphas, beta):
+    def __init__(self, alphas, beta, gui=True):
         self.alphas = alphas
         self.beta = beta
         # initialize pybullet environment
-        physicsClient = p.connect(p.GUI)
+        if gui:
+            physicsClient = p.connect(p.GUI)
+        else:
+            physicsClient = p.connect(p.DIRECT)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.setGravity(0,0,-10)
         self.p = p
