@@ -92,6 +92,8 @@ def setup_parser():
     parser.add_argument(
         '--num-steps', type=int, default=200,
         help='timesteps to simulate')
+    parser.add_argument(
+        '--headless', action='store_true')
 
     # Noise scaling factors
     parser.add_argument(
@@ -118,7 +120,11 @@ if __name__ == '__main__':
     alphas = np.array([0.05**2, 0.005**2, 0.1**2, 0.01**2])
     beta = np.diag([np.deg2rad(5)**2])
 
-    env = Field(args.data_factor * alphas, args.data_factor * beta)
+    env = Field(
+        args.data_factor * alphas,
+        args.data_factor * beta,
+        gui=(not args.headless),
+    )
     policy = policies.OpenLoopRectanglePolicy()
 
     initial_mean = np.array([180, 50, 0]).reshape((-1, 1))
