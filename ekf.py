@@ -28,4 +28,16 @@ class ExtendedKalmanFilter:
         marker_id: landmark ID
         """
         # YOUR IMPLEMENTATION HERE
+        # PREDICTION #
+        mu_pred, G_t = env.G(self.mu, u)
+        V_t = env.V(self.mu, u)
+        cov_pred = G_t @ self.sigma @ G_t.T + V_t @ env.noise_from_motion(u, self.alphas) @ V_t.T
+
+        # CORRECTION
+        H_t = env.H(mu_pred, marker_id)
+        S_t = H_t @ cov_pred @ H_t.T + self.beta
+        K_t = cov_pred @ H_t.T @ (1/S_t) # (3x3) @ (3x1) @ (1x1) = (3x1)
+        self.mu = mu_pred.reshape(3,1) + K_t @ (z-env.observe(mu_pred, marker_id))
+        self.sigma = (np.eye(3) - K_t @ H_t) @ cov_pred
+
         return self.mu, self.sigma
