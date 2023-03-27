@@ -1,22 +1,44 @@
 """ Written by Brian Hou for CSE571: Probabilistic Robotics (Winter 2019)
     Modified by Wentao Yuan for CSE571: Probabilistic Robotics (Spring 2022)
+    Modified by Aaron Walsman and Zoey Chen for CSEP590A: Robotics (Spring 2023)
 """
 
+import time
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
-from utils import minimized_angle, create_scene, plot_robot, plot_path, plot_particles, get_obs
+from utils import (
+    minimized_angle,
+    create_scene,
+    add_robot,
+    move_robot,
+    plot_observation,
+    plot_path_step,
+    plot_particles,
+)
 from soccer_field import Field
 import policies
 from ekf import ExtendedKalmanFilter
 from pf import ParticleFilter
 
 
-def localize(env, policy, filt, x0, num_steps, plot=False):
+def localize(
+    env,
+    policy,
+    filt,
+    x0,
+    num_steps,
+    plot=False,
+    step_pause=None,
+    step_breakpoint=False
+):
     # Collect data from an entire rollout
-    states_noisefree, states_real, action_noisefree, obs_noisefree, obs_real = \
-        env.rollout(x0, policy, num_steps)
+    (states_noisefree,
+     states_real,
+     action_noisefree,
+     obs_noisefree,
+     obs_real) = env.rollout(x0, policy, num_steps)
     states_filter = np.zeros(states_real.shape)
     states_filter[0, :] = x0.ravel()
 
@@ -25,8 +47,11 @@ def localize(env, policy, filt, x0, num_steps, plot=False):
     mahalanobis_errors = np.zeros(num_steps)
 
     if plot:
-        create_scene(env)
-
+        pillar_ids, text_ids = create_scene(env)
+        car_id = add_robot(env)
+        obs_id = None
+        particle_id = None
+    
     for i in range(num_steps):
         x_real = states_real[i+1, :].reshape((-1, 1))
         u_noisefree = action_noisefree[i, :].reshape((-1, 1))
@@ -39,10 +64,45 @@ def localize(env, policy, filt, x0, num_steps, plot=False):
             # filters only know the action and observation
             mean, cov = filt.update(env, u_noisefree, z_real, marker_id)
         states_filter[i+1, :] = mean.ravel()
-
-        if plot and args.filter_type == 'pf' and u_noisefree[0] > 0:
-            plot_particles(env, filt.particles)
-
+        
+        if plot:
+            # move the robot
+            move_robot(env, car_id, x_real)
+            
+            # plot observation
+            obs_id = plot_observation(
+                env, obs_id, x_real, z_real, marker_id, [0,0,0])
+            
+            # plot actual trajectory
+            x_real_previous = states_real[i, :].reshape((-1, 1))
+            plot_path_step(env, x_real_previous, x_real, [0,0,1])
+            
+            # plot noisefree trajectory
+            noisefree_previous = states_noisefree[i]
+            noisefree_current = states_noisefree[i+1]
+            plot_path_step(env, noisefree_previous, noisefree_current, [0,1,0])
+            
+            # plot estimated trajectory
+            if filt is not None:
+                filter_previous = states_filter[i]
+                filter_current = states_filter[i+1]
+                plot_path_step(env, filter_previous, filter_current, [1,0,0])
+            
+            # plot particles
+            if args.filter_type == 'pf':
+                particle_id = plot_particles(
+                    env,
+                    filt.particles,
+                    filt.weights,
+                    previous_particles=particle_id
+                )
+        
+        # pause/breakpoint
+        if step_pause:
+            time.sleep(step_pause)
+        if step_breakpoint:
+            breakpoint()
+        
         errors[i, :] = (mean - x_real).ravel()
         errors[i, 2] = minimized_angle(errors[i, 2])
         position_errors[i] = np.linalg.norm(errors[i, :2])
@@ -64,17 +124,11 @@ def localize(env, policy, filt, x0, num_steps, plot=False):
         print('Mean position error:', mean_position_error)
         print('Mean Mahalanobis error:', mean_mahalanobis_error)
         print('ANEES:', anees)
-
+    
     if plot:
-        car_id = plot_robot(env, x_real, z_real)
-        rgbs, depths, masks = get_obs(env,  car_id)
-        plot_path(env, states_noisefree, [0,1,0])
-        plot_path(env, states_real, [0,0,1])
-        if filt is not None:
-            plot_path(env, states_filter[:, :2], [1,0,0])
         while True:
             env.p.stepSimulation()
-
+    
     return mean_position_error, anees
 
 
@@ -92,8 +146,6 @@ def setup_parser():
     parser.add_argument(
         '--num-steps', type=int, default=200,
         help='timesteps to simulate')
-    parser.add_argument(
-        '--headless', action='store_true')
 
     # Noise scaling factors
     parser.add_argument(
@@ -105,7 +157,15 @@ def setup_parser():
     parser.add_argument(
         '--num-particles', type=int, default=100,
         help='number of particles (particle filter only)')
-
+    
+    # Debugging arguments
+    parser.add_argument(
+        '--step-pause', type=float, default=0.,
+        help='slows down the rollout to make it easier to visualize')
+    parser.add_argument(
+        '--step-breakpoint', action='store_true',
+        help='adds a breakpoint to each step for debugging purposes')
+    
     return parser
 
 
@@ -123,7 +183,7 @@ if __name__ == '__main__':
     env = Field(
         args.data_factor * alphas,
         args.data_factor * beta,
-        gui=(not args.headless),
+        gui=args.plot,
     )
     policy = policies.OpenLoopRectanglePolicy()
 
@@ -149,4 +209,4 @@ if __name__ == '__main__':
         )
 
     # You may want to edit this line to run multiple localization experiments.
-    localize(env, policy, filt, initial_mean, args.num_steps, args.plot)
+    localize(env, policy, filt, initial_mean, args.num_steps, args.plot, args.step_pause, args.step_breakpoint)
