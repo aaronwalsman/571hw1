@@ -8,7 +8,7 @@ import numpy as np
 import PIL
 
 from soccer_field import Field
-from utils import create_scene, plot_robot, get_obs
+from utils import create_scene, add_robot, get_obs
 
 def make_dataset(output_directory, num_points, seed, out_of_bounds=200):
     if seed is not None:
@@ -21,7 +21,7 @@ def make_dataset(output_directory, num_points, seed, out_of_bounds=200):
     
     env = Field(alphas, beta, gui=False)
     create_scene(env)
-    robot_id = plot_robot(env,[50,50,0],[0])
+    robot_id = add_robot(env)
     
     x_min = env.MARKER_OFFSET_X - out_of_bounds
     x_max = env.MARKER_OFFSET_X + env.MARKER_DIST_X + out_of_bounds
@@ -66,5 +66,8 @@ if __name__ == '__main__':
             args.size = 10000
         else:
             args.size = 1000
+    
+    # current train dataset uses seed 1234
+    # current test dataset uses seed 12345
     
     make_dataset('%s_dataset'%args.split, args.size, seed=args.seed)
