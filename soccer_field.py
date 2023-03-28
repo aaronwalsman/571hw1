@@ -184,7 +184,7 @@ class Field:
             image = torch.FloatTensor(image).cuda() / 255.
             image = image.view(1,h,w,c).permute(0,3,1,2)
             with torch.no_grad():
-                z = self.observation_model(THING)
+                z = self.observation_model(image)
                 if z.shape[-1] == 12:
                     z = torch.atan2(z[:,6:], z[:,:6])
                 z = z.view(-1).cpu().numpy()
