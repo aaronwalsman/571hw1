@@ -22,13 +22,7 @@ def localize(
     x0,
     num_steps,
     plot=False,
-    step_pause=None,
-    step_breakpoint=False
 ):
-    
-    # build the pybullet scene and add the robot
-    env.create_scene()
-    env.add_robot()
     
     # Collect data from an entire rollout
     (states_noisefree,

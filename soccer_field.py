@@ -70,6 +70,10 @@ class Field:
         p.setGravity(0,0,-10)
         self.p = p
         
+        # add the robot and landmarks to the pybullet scene
+        self.create_scene()
+        self.add_robot()
+        
         self.use_learned_observation_model = use_learned_observation_model
         if use_learned_observation_model:
             assert torch_available
@@ -179,6 +183,9 @@ class Field:
         """
         if self.use_learned_observation_model:
             #x = torch.FloatTensor(x).to(self.device).view(1,3)
+            prev_robot_x = self.get_robot_x()
+            self.move_robot(x)
+            self.move_robot(prev_robot_x)
             image = self.render_panorama()
             h,w,c = image.shape
             image = torch.FloatTensor(image).cuda() / 255.
@@ -190,7 +197,6 @@ class Field:
                 z = z.view(-1).cpu().numpy()
                 z = z[marker_id-1].reshape(-1,1)
             
-            print(z)
             return z
         
         else:
@@ -200,7 +206,6 @@ class Field:
             z = self.observe(x, marker_id)
             z = np.random.multivariate_normal(
                 z.ravel(), beta).reshape((-1, 1))
-            print(z)
             return z
 
     def get_figure(self):
@@ -233,6 +238,11 @@ class Field:
             action_noisefree[i, :] = u_noisefree.ravel()
             obs_noisefree[i, :] = z_noisefree.ravel()
             obs_real[i, :] = z_real.ravel()
+            
+            if self.step_pause:
+                time.sleep(step_pause)
+            if self.step_breakpoint:
+                breakpoint()
 
         states_noisefree = np.concatenate([x0.T, states_noisefree], axis=0)
         states_real = np.concatenate([x0.T, states_real], axis=0)
@@ -286,6 +296,12 @@ class Field:
         q = self.p.getQuaternionFromEuler([0,0,x[2]+np.pi])
         self.p.resetBasePositionAndOrientation(self.racer_car_id, p, q)
     
+    def get_robot_x(self):
+        p, q = self.p.getBasePositionAndOrientation(
+            self.racer_car_id)
+        theta = self.p.getEulerFromQuaternion(car_orient)[2] + np.pi
+        return [p[0]*100, p[1]*100, theta]
+    
     def plot_observation(self, x, z, marker_id):
         xyz0 = np.array([x[0,0]/100., x[1,0]/100., 0.05])
 
@@ -327,39 +343,39 @@ class Field:
     def render_panorama(self, resolution=32):
         car_pos, car_orient = self.p.getBasePositionAndOrientation(
             self.racer_car_id)
-        steering = self.p.getEulerFromQuaternion(car_orient)[2]
+        steering = self.p.getEulerFromQuaternion(car_orient)[2] + np.pi
 
         camera_height = 0.2
 
         # front camera
         front_cam = np.array(car_pos) + [0,0,camera_height]
         front_cam_to = np.array([
-            car_pos[0] + np.cos(steering + 2 * np.pi / 2) * 10,
-            car_pos[1] + np.sin(steering + 2 * np.pi / 2) * 10,
+            car_pos[0] + np.cos(steering + 0 * np.pi / 2) * 10,
+            car_pos[1] + np.sin(steering + 0 * np.pi / 2) * 10,
             car_pos[2] + camera_height,
         ])
 
         # right camera
         right_cam = np.array(car_pos) + [0,0,camera_height]
         right_cam_to = np.array([
-            car_pos[0] + np.cos(steering + 3 * np.pi / 2) * 10,
-            car_pos[1] + np.sin(steering + 3 * np.pi / 2) * 10,
+            car_pos[0] + np.cos(steering + 1 * np.pi / 2) * 10,
+            car_pos[1] + np.sin(steering + 1 * np.pi / 2) * 10,
             car_pos[2] + camera_height,
         ])
 
         # back camera
         back_cam = np.array(car_pos) + [0,0,camera_height]
         back_cam_to = np.array([
-            car_pos[0] + np.cos(steering + 0 * np.pi / 2) * 10,
-            car_pos[1] + np.sin(steering + 0 * np.pi / 2) * 10,
+            car_pos[0] + np.cos(steering + 2 * np.pi / 2) * 10,
+            car_pos[1] + np.sin(steering + 2 * np.pi / 2) * 10,
             car_pos[2] + camera_height,
         ])
 
         # left camera
         left_cam = np.array(car_pos) + [0,0,camera_height]
         left_cam_to = np.array([
-            car_pos[0] + np.cos(steering + np.pi/2) * 10,
-            car_pos[1] + np.sin(steering + np.pi/2) * 10,
+            car_pos[0] + np.cos(steering + 3 * np.pi / 2) * 10,
+            car_pos[1] + np.sin(steering + 3 * np.pi / 2) * 10,
             car_pos[2] + camera_height,
         ])
 
