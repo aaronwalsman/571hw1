@@ -84,46 +84,20 @@ class Field:
         prev_x, prev_y, prev_theta = x.ravel()
         rot1, trans, rot2 = u.ravel()
         # YOUR IMPLEMENTATION HERE
-        mu_pred = np.array([prev_x, prev_y, prev_theta]) + np.array(
-            [trans * np.cos(prev_theta + rot1), trans * np.sin(prev_theta + rot1), rot1 + rot2])
-        # derivatives.
-        jacobian = np.array([[1, 0, -trans * np.sin(prev_theta + rot1)],
-                             [0, 1, trans * np.cos(prev_theta + rot1)],
-                             [0, 0, 1],
-                             ])
-        return mu_pred, jacobian
+
 
     def V(self, x, u):
         """Compute the Jacobian of the dynamics with respect to the control."""
         prev_x, prev_y, prev_theta = x.ravel()
         rot1, trans, rot2 = u.ravel()
         # YOUR IMPLEMENTATION HERE
-        jacobian = np.array([[-trans * np.sin(prev_theta + rot1), np.cos(prev_theta + rot1), 0],
-                             [trans * np.cos(prev_theta + rot1), np.sin(prev_theta + rot1), 0],
-                             [1, 0, 1],
-                             ])
-        return jacobian
+
 
     def H(self, x, marker_id):
         """Compute the Jacobian of the observation with respect to the state."""
-        prev_x, prev_y, prev_theta = x[0], x[1], x[2]
+        prev_x, prev_y, prev_theta = x.ravel()
         # YOUR IMPLEMENTATION HERE
-        # get measurement:
-        lx = self.MARKER_X_POS[marker_id]
-        ly = self.MARKER_Y_POS[marker_id]
-        bearing = prev_theta - np.arctan2((ly - prev_y), (lx - prev_x))
-        # Jacobian
-        # lx = Symbol('lx')
-        # ly = Symbol('ly')
-        # prev_y = Symbol('prev_y')
-        # prev_x = Symbol('prev_x')
-        # dx = diff(-atan2((ly-prev_y), (lx-prev_x)), prev_x)
-        # dy = diff(-atan2((ly - prev_y), (lx - prev_x)), prev_y)
-        dx = (-ly + prev_y) / ((lx - prev_x) ** 2 + (ly - prev_y) ** 2)
-        dy = (lx - prev_x) / ((lx - prev_x) ** 2 + (ly - prev_y) ** 2)
 
-        jacobean = np.array([[dx, dy, 1]])
-        return jacobean
 
     def forward(self, x, u):
         """Compute next state, given current state and action.
