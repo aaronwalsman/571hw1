@@ -1,7 +1,7 @@
 import torch.nn as nn
 
 class ObservationModel(nn.Module):
-    def __init__(self):
+    def __init__(self, output_channels):
         super().__init__()
         
         # YOUR IMPLEMENTATION HERE
