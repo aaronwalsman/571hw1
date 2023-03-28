@@ -25,6 +25,11 @@ def localize(
     step_pause=None,
     step_breakpoint=False
 ):
+    
+    # build the pybullet scene and add the robot
+    env.create_scene()
+    env.add_robot()
+    
     # Collect data from an entire rollout
     (states_noisefree,
      states_real,
@@ -37,13 +42,6 @@ def localize(
     errors = np.zeros((num_steps, 3))
     position_errors = np.zeros(num_steps)
     mahalanobis_errors = np.zeros(num_steps)
-
-    if plot:
-        env.create_scene()
-        env.add_robot()
-        
-        obs_id = None
-        particle_id = None
     
     for i in range(num_steps):
         x_real = states_real[i+1, :].reshape((-1, 1))
