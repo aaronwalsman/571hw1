@@ -29,8 +29,8 @@ def make_dataset(output_directory, num_points, seed, out_of_bounds=200):
     y_max = env.MARKER_OFFSET_Y + env.MARKER_DIST_Y + out_of_bounds
     
     for i in range(num_points):
-        x = (random.random() * (x_max - x_min) + x_min)/100.
-        y = (random.random() * (y_max - y_min) + y_min)/100.
+        x = (random.random() * (x_max - x_min) + x_min)
+        y = (random.random() * (y_max - y_min) + y_min)
         theta = random.random() * math.pi * 2.
         observations = [env.observe([x,y,theta],j) for j in range(1,7)]
         q = env.p.getQuaternionFromEuler([0,0,theta])
@@ -63,4 +63,4 @@ if __name__ == '__main__':
     # current train dataset uses seed 1234
     # current test dataset uses seed 12345
     
-    make_dataset('%s_dataset'%args.split, args.size, seed=args.seed)
+    make_dataset('hw1_%s_dataset'%args.split, args.size, seed=args.seed)

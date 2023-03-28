@@ -328,16 +328,24 @@ class Field:
         # front camera
         front_cam = np.array(car_pos) + [0,0,camera_height]
         front_cam_to = np.array([
-            car_pos[0] + np.cos(steering) * 10,
-            car_pos[1] + np.sin(steering) * 10,
+            car_pos[0] + np.cos(steering + 2 * np.pi / 2) * 10,
+            car_pos[1] + np.sin(steering + 2 * np.pi / 2) * 10,
+            car_pos[2] + camera_height,
+        ])
+
+        # right camera
+        right_cam = np.array(car_pos) + [0,0,camera_height]
+        right_cam_to = np.array([
+            car_pos[0] + np.cos(steering + 3 * np.pi / 2) * 10,
+            car_pos[1] + np.sin(steering + 3 * np.pi / 2) * 10,
             car_pos[2] + camera_height,
         ])
 
         # back camera
         back_cam = np.array(car_pos) + [0,0,camera_height]
         back_cam_to = np.array([
-            car_pos[0] + np.cos(steering+np.pi) * 10,
-            car_pos[1] + np.sin(steering+np.pi) * 10,
+            car_pos[0] + np.cos(steering + 0 * np.pi / 2) * 10,
+            car_pos[1] + np.sin(steering + 0 * np.pi / 2) * 10,
             car_pos[2] + camera_height,
         ])
 
@@ -346,14 +354,6 @@ class Field:
         left_cam_to = np.array([
             car_pos[0] + np.cos(steering + np.pi/2) * 10,
             car_pos[1] + np.sin(steering + np.pi/2) * 10,
-            car_pos[2] + camera_height,
-        ])
-
-        # right camera
-        right_cam = np.array(car_pos) + [0,0,camera_height]
-        right_cam_to = np.array([
-            car_pos[0] + np.cos(steering - np.pi / 2) * 10,
-            car_pos[1] + np.sin(steering - np.pi / 2) * 10,
             car_pos[2] + camera_height,
         ])
 
