@@ -342,6 +342,14 @@ class Field:
 
         camera_height = 0.2
 
+        # left camera
+        left_cam = np.array(car_pos) + [0,0,camera_height]
+        left_cam_to = np.array([
+            car_pos[0] + np.cos(steering + 1 * np.pi / 2) * 10,
+            car_pos[1] + np.sin(steering + 1 * np.pi / 2) * 10,
+            car_pos[2] + camera_height,
+        ])
+
         # front camera
         front_cam = np.array(car_pos) + [0,0,camera_height]
         front_cam_to = np.array([
@@ -353,8 +361,8 @@ class Field:
         # right camera
         right_cam = np.array(car_pos) + [0,0,camera_height]
         right_cam_to = np.array([
-            car_pos[0] + np.cos(steering + 1 * np.pi / 2) * 10,
-            car_pos[1] + np.sin(steering + 1 * np.pi / 2) * 10,
+            car_pos[0] + np.cos(steering + 3 * np.pi / 2) * 10,
+            car_pos[1] + np.sin(steering + 3 * np.pi / 2) * 10,
             car_pos[2] + camera_height,
         ])
 
@@ -366,20 +374,12 @@ class Field:
             car_pos[2] + camera_height,
         ])
 
-        # left camera
-        left_cam = np.array(car_pos) + [0,0,camera_height]
-        left_cam_to = np.array([
-            car_pos[0] + np.cos(steering + 3 * np.pi / 2) * 10,
-            car_pos[1] + np.sin(steering + 3 * np.pi / 2) * 10,
-            car_pos[2] + camera_height,
-        ])
-
-        cam_eyes = [front_cam, back_cam, left_cam, right_cam]
-        cam_targets = [front_cam_to, back_cam_to, left_cam_to, right_cam_to]
+        cam_eyes = [left_cam, front_cam, right_cam, back_cam]
+        cam_targets = [left_cam_to, front_cam_to, right_cam_to, back_cam_to]
         
         images = []
-        depths = []
-        masks = []
+        #depths = []
+        #masks = []
         for i in range(4):
             # Define the camera view matrix
             view_matrix = self.p.computeViewMatrix(
@@ -403,15 +403,11 @@ class Field:
                 renderer=self.p.ER_BULLET_HARDWARE_OPENGL
             )
 
-            images.append(rgb)
-            depths.append(depth)
-            masks.append(segm)
+            images.append(rgb[:,:,:3])
+            #depths.append(depth)
+            #masks.append(segm)
 
-        f,b,l,r = images
-        f = f[:,:,:3]
-        b = b[:,:,:3]
-        l = l[:,:,:3]
-        r = r[:,:,:3]
+        l,f,r,b = images
         rgb_strip = np.concatenate([l,f,r,b], axis=1)
         rgb_strip = np.concatenate(
             [rgb_strip[:,-resolution//2:], rgb_strip[:,:-resolution//2]],

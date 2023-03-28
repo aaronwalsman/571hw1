@@ -10,7 +10,14 @@ import PIL
 
 from soccer_field import Field
 
-def make_dataset(output_directory, num_points, seed, out_of_bounds=200):
+def make_dataset(
+    output_directory,
+    num_points,
+    seed=None,
+    out_of_bounds=200,
+    resolution=32
+):
+
     if seed is not None:
         random.seed(seed)
     
@@ -20,8 +27,6 @@ def make_dataset(output_directory, num_points, seed, out_of_bounds=200):
     beta = np.diag([np.deg2rad(5)**2])
     
     env = Field(alphas, beta, gui=False)
-    env.create_scene()
-    env.add_robot()
     
     x_min = env.MARKER_OFFSET_X - out_of_bounds
     x_max = env.MARKER_OFFSET_X + env.MARKER_DIST_X + out_of_bounds
@@ -36,7 +41,7 @@ def make_dataset(output_directory, num_points, seed, out_of_bounds=200):
         q = env.p.getQuaternionFromEuler([0,0,theta])
         env.move_robot([x,y,theta])
         
-        rgb_strip = env.render_panorama()
+        rgb_strip = env.render_panorama(resolution=resolution)
         
         image_name = '%s/rgb_%06i.png'%(output_directory, i)
         image = PIL.Image.fromarray(rgb_strip)
@@ -52,6 +57,7 @@ if __name__ == '__main__':
     parser.add_argument('--split', type=str, default='train')
     parser.add_argument('--size', type=int, default=None)
     parser.add_argument('--seed', type=int, default=None)
+    parser.add_argument('--resolution', type=int, default=32)
     
     args = parser.parse_args()
     if args.size is None:
@@ -63,4 +69,9 @@ if __name__ == '__main__':
     # current train dataset uses seed 1234
     # current test dataset uses seed 12345
     
-    make_dataset('hw1_%s_dataset'%args.split, args.size, seed=args.seed)
+    make_dataset(
+        'hw1_%s_dataset'%args.split,
+        args.size,
+        seed=args.seed,
+        resolution=args.resolution,
+    )
