@@ -185,10 +185,10 @@ class Field:
             #x = torch.FloatTensor(x).to(self.device).view(1,3)
             prev_robot_x = self.get_robot_x()
             self.move_robot(x)
-            self.move_robot(prev_robot_x)
             image = self.render_panorama()
+            self.move_robot(prev_robot_x)
             h,w,c = image.shape
-            image = torch.FloatTensor(image).cuda() / 255.
+            image = torch.FloatTensor(image).to(self.device) / 255.
             image = image.view(1,h,w,c).permute(0,3,1,2)
             with torch.no_grad():
                 z = self.observation_model(image)
@@ -294,7 +294,7 @@ class Field:
     def get_robot_x(self):
         p, q = self.p.getBasePositionAndOrientation(
             self.racer_car_id)
-        theta = self.p.getEulerFromQuaternion(car_orient)[2] + np.pi
+        theta = self.p.getEulerFromQuaternion(q)[2] + np.pi
         return [p[0]*100, p[1]*100, theta]
     
     def plot_observation(self, x, z, marker_id):
