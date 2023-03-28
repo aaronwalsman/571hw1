@@ -179,7 +179,10 @@ class Field:
         """
         if self.use_learned_observation_model:
             #x = torch.FloatTensor(x).to(self.device).view(1,3)
-            image, _, _ = self.render_panorama()
+            image = self.render_panorama()
+            h,w,c = image.shape
+            image = torch.FloatTensor(image).cuda() / 255.
+            image = image.view(1,h,w,c).permute(0,3,1,2)
             with torch.no_grad():
                 z = self.observation_model(THING)
                 if z.shape[-1] == 12:
