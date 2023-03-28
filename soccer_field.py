@@ -189,7 +189,8 @@ class Field:
                     z = torch.atan2(z[:,6:], z[:,:6])
                 z = z.view(-1).cpu().numpy()
                 z = z[marker_id-1].reshape(-1,1)
-                
+            
+            print(z)
             return z
         
         else:
@@ -197,8 +198,10 @@ class Field:
                 beta = self.beta
             
             z = self.observe(x, marker_id)
-            return np.random.multivariate_normal(
+            z = np.random.multivariate_normal(
                 z.ravel(), beta).reshape((-1, 1))
+            print(z)
+            return z
 
     def get_figure(self):
         return plt.figure(1)
