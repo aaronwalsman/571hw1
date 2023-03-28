@@ -22,6 +22,8 @@ def localize(
     x0,
     num_steps,
     plot=False,
+    step_pause=0.,
+    step_breakpoint=False,
 ):
     
     # Collect data from an entire rollout

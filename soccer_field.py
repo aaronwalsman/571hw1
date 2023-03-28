@@ -238,11 +238,6 @@ class Field:
             action_noisefree[i, :] = u_noisefree.ravel()
             obs_noisefree[i, :] = z_noisefree.ravel()
             obs_real[i, :] = z_real.ravel()
-            
-            if self.step_pause:
-                time.sleep(step_pause)
-            if self.step_breakpoint:
-                breakpoint()
 
         states_noisefree = np.concatenate([x0.T, states_noisefree], axis=0)
         states_real = np.concatenate([x0.T, states_real], axis=0)
