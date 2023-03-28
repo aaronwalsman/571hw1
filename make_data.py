@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import random
 import math
 import os
@@ -8,7 +9,6 @@ import numpy as np
 import PIL
 
 from soccer_field import Field
-from utils import create_scene, add_robot, get_obs
 
 def make_dataset(output_directory, num_points, seed, out_of_bounds=200):
     if seed is not None:
@@ -20,8 +20,8 @@ def make_dataset(output_directory, num_points, seed, out_of_bounds=200):
     beta = np.diag([np.deg2rad(5)**2])
     
     env = Field(alphas, beta, gui=False)
-    create_scene(env)
-    robot_id = add_robot(env)
+    env.create_scene()
+    env.add_robot()
     
     x_min = env.MARKER_OFFSET_X - out_of_bounds
     x_max = env.MARKER_OFFSET_X + env.MARKER_DIST_X + out_of_bounds
@@ -34,16 +34,9 @@ def make_dataset(output_directory, num_points, seed, out_of_bounds=200):
         theta = random.random() * math.pi * 2.
         observations = [env.observe([x,y,theta],j) for j in range(1,7)]
         q = env.p.getQuaternionFromEuler([0,0,theta])
-        env.p.resetBasePositionAndOrientation(robot_id, [x,y,0], q)
-        rgbs, _, _ = get_obs(env, robot_id, resolution=32)
-        f,b,l,r = rgbs
-        f = f[:,:,:3]
-        b = b[:,:,:3]
-        l = l[:,:,:3]
-        r = r[:,:,:3]
-        rgb_strip = np.concatenate([l,f,r,b], axis=1)
-        rgb_strip = np.concatenate(
-            [rgb_strip[:,-16:], rgb_strip[:,:-16]], axis=1)
+        env.move_robot([x,y,theta])
+        
+        rgb_strip = env.render_panorama()
         
         image_name = '%s/rgb_%06i.png'%(output_directory, i)
         image = PIL.Image.fromarray(rgb_strip)

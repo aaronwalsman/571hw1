@@ -8,15 +8,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
-from utils import (
-    minimized_angle,
-    create_scene,
-    add_robot,
-    move_robot,
-    plot_observation,
-    plot_path_step,
-    plot_particles,
-)
+from utils import minimized_angle
 from soccer_field import Field
 import policies
 from ekf import ExtendedKalmanFilter
@@ -47,8 +39,9 @@ def localize(
     mahalanobis_errors = np.zeros(num_steps)
 
     if plot:
-        pillar_ids, text_ids = create_scene(env)
-        car_id = add_robot(env)
+        env.create_scene()
+        env.add_robot()
+        
         obs_id = None
         particle_id = None
     
@@ -67,35 +60,29 @@ def localize(
         
         if plot:
             # move the robot
-            move_robot(env, car_id, x_real)
+            env.move_robot(x_real)
             
             # plot observation
-            obs_id = plot_observation(
-                env, obs_id, x_real, z_real, marker_id, [0,0,0])
+            env.plot_observation(x_real, z_real, marker_id)
             
             # plot actual trajectory
             x_real_previous = states_real[i, :].reshape((-1, 1))
-            plot_path_step(env, x_real_previous, x_real, [0,0,1])
+            env.plot_path_step(x_real_previous, x_real, [0,0,1])
             
             # plot noisefree trajectory
             noisefree_previous = states_noisefree[i]
             noisefree_current = states_noisefree[i+1]
-            plot_path_step(env, noisefree_previous, noisefree_current, [0,1,0])
+            env.plot_path_step(noisefree_previous, noisefree_current, [0,1,0])
             
             # plot estimated trajectory
             if filt is not None:
                 filter_previous = states_filter[i]
                 filter_current = states_filter[i+1]
-                plot_path_step(env, filter_previous, filter_current, [1,0,0])
+                env.plot_path_step(filter_previous, filter_current, [1,0,0])
             
             # plot particles
             if args.filter_type == 'pf':
-                particle_id = plot_particles(
-                    env,
-                    filt.particles,
-                    filt.weights,
-                    previous_particles=particle_id
-                )
+                env.plot_particles(filt.particles, filt.weights)
         
         # pause/breakpoint
         if step_pause:

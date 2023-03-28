@@ -78,7 +78,7 @@ class Field:
             state_dict = torch.load(
                 use_learned_observation_model, map_location=device)
             self.observation_model.load_state_dict(state_dict)
-
+    
     def G(self, x, u):
         """Compute the Jacobian of the dynamics with respect to the state."""
         prev_x, prev_y, prev_theta = x.ravel()
@@ -204,9 +204,10 @@ class Field:
         beta: noise parameters for landmark observation model (default: data beta)
         """
         if self.use_learned_observation_model:
-            x = torch.FloatTensor(x).to(self.device).view(1,3)
+            #x = torch.FloatTensor(x).to(self.device).view(1,3)
+            image, _, _ = self.render_panorama()
             with torch.no_grad():
-                z = self.observation_model(x)
+                z = self.observation_model(THING)
                 if z.shape[-1] == 12:
                     z = torch.atan2(z[:,6:], z[:,:6])
                 z = z.view(-1).cpu().numpy()
@@ -261,3 +262,169 @@ class Field:
             action_noisefree,
             obs_noisefree, obs_real
         )
+    
+    # pybullet
+    def create_scene(self):
+        self.plane_id = self.p.loadURDF("plane.urdf")
+        h = 1
+        r = 0.1
+
+        pillar_shape = self.p.createCollisionShape(
+            self.p.GEOM_CYLINDER, radius=r, height=h)
+        colors = [
+            [0.9, 0.0, 0.0, 1.0],
+            [0.0, 0.9, 0.0, 1.0],
+            [0.0, 0.0, 0.9, 1.0],
+            [0.5, 0.5, 0.0 ,1.0],
+            [0.0, 0.5, 0.5, 1.0],
+            [0.5, 0.0, 0.5, 1.0],
+        ]
+        self.pillar_ids = []
+        self.text_ids = []
+        for m in self.MARKERS:
+            x, y = self.MARKER_X_POS[m]/100, self.MARKER_Y_POS[m]/100
+            pillar_id = self.p.createMultiBody(
+                baseCollisionShapeIndex=pillar_shape, basePosition=[x, y, h/2])
+            self.pillar_ids.append(pillar_id)
+            self.p.setCollisionFilterGroupMask(pillar_id, -1, 0, 0)
+            self.p.changeVisualShape(pillar_id, -1, rgbaColor=colors[m-1])
+
+            text_id = self.p.addUserDebugText(
+                str(m),
+                textPosition=[0,0,h/2+0.1],
+                textColorRGB=[0, 0, 0],
+                textSize=2,
+                parentObjectUniqueId=pillar_id,
+            )
+            self.text_ids.append(text_id)
+    
+    def add_robot(self):
+        self.racer_car_id = self.p.loadURDF('racecar.urdf', [0,0,0], [0,0,0,1])
+    
+    def move_robot(self, x):
+        p = [x[0]/100., x[1]/100., 0]
+        q = self.p.getQuaternionFromEuler([0,0,x[2]+np.pi])
+        self.p.resetBasePositionAndOrientation(self.racer_car_id, p, q)
+    
+    def plot_observation(self, x, z, marker_id):
+        xyz0 = np.array([x[0,0]/100., x[1,0]/100., 0.05])
+
+        marker_x = np.array([
+            self.MARKER_X_POS[marker_id]/100.,
+            self.MARKER_Y_POS[marker_id]/100.,
+            0.05
+        ])
+        distance = np.linalg.norm(xyz0 - marker_x)
+
+        dx = np.cos(z+x[2])
+        dy = np.sin(z+x[2])
+        xyz1 = [x[0]/100. + dx*distance, x[1]/100. + dy*distance, 0.05]
+
+        kwargs = {}
+        if hasattr(self, 'obs_id'):
+            kwargs['replaceItemUniqueId'] = self.obs_id
+        self.obs_id = self.p.addUserDebugLine(
+                xyz0, xyz1, [0,0,0], 2, **kwargs)
+    
+    def plot_path_step(self, x_previous, x_current, color):
+        xyz_previous = [x_previous[0]/100., x_previous[1]/100., 0.05]
+        xyz_current = [x_current[0]/100., x_current[1]/100., 0.05]
+        self.p.addUserDebugLine(xyz_previous, xyz_current, color, 2)
+    
+    def plot_particles(self, particles, weights):
+        xyz = np.concatenate(
+            (particles[:,:2]/100., np.full((len(particles),1), 0.2)), axis=1)
+        color = np.zeros((len(particles),3))
+        color[:,0] = 1
+        color = color * weights.reshape(-1,1) * 50
+        color = np.clip(color, 0, 1)
+        kwargs = {}
+        if hasattr(self, 'particle_id'):
+            kwargs['replaceItemUniqueId'] = self.particle_id
+        self.particle_id = self.p.addUserDebugPoints(
+            xyz, color, pointSize=2, **kwargs)
+    
+    def render_panorama(self, resolution=32):
+        car_pos, car_orient = self.p.getBasePositionAndOrientation(
+            self.racer_car_id)
+        steering = self.p.getEulerFromQuaternion(car_orient)[2]
+
+        camera_height = 0.2
+
+        # front camera
+        front_cam = np.array(car_pos) + [0,0,camera_height]
+        front_cam_to = np.array([
+            car_pos[0] + np.cos(steering) * 10,
+            car_pos[1] + np.sin(steering) * 10,
+            car_pos[2] + camera_height,
+        ])
+
+        # back camera
+        back_cam = np.array(car_pos) + [0,0,camera_height]
+        back_cam_to = np.array([
+            car_pos[0] + np.cos(steering+np.pi) * 10,
+            car_pos[1] + np.sin(steering+np.pi) * 10,
+            car_pos[2] + camera_height,
+        ])
+
+        # left camera
+        left_cam = np.array(car_pos) + [0,0,camera_height]
+        left_cam_to = np.array([
+            car_pos[0] + np.cos(steering + np.pi/2) * 10,
+            car_pos[1] + np.sin(steering + np.pi/2) * 10,
+            car_pos[2] + camera_height,
+        ])
+
+        # right camera
+        right_cam = np.array(car_pos) + [0,0,camera_height]
+        right_cam_to = np.array([
+            car_pos[0] + np.cos(steering - np.pi / 2) * 10,
+            car_pos[1] + np.sin(steering - np.pi / 2) * 10,
+            car_pos[2] + camera_height,
+        ])
+
+        cam_eyes = [front_cam, back_cam, left_cam, right_cam]
+        cam_targets = [front_cam_to, back_cam_to, left_cam_to, right_cam_to]
+        
+        images = []
+        depths = []
+        masks = []
+        for i in range(4):
+            # Define the camera view matrix
+            view_matrix = self.p.computeViewMatrix(
+                cameraEyePosition=cam_eyes[i],
+                cameraTargetPosition=cam_targets[i],
+                cameraUpVector = [0,0,1]
+            )
+            # Define the camera projection matrix
+            projection_matrix = self.p.computeProjectionMatrixFOV(
+                fov=90,
+                aspect=1.0,
+                nearVal=0.1,
+                farVal=100.0
+            )
+            # Add the camera to the scene
+            _,_,rgb,depth,segm = self.p.getCameraImage(
+                width = resolution,
+                height = resolution,
+                viewMatrix=view_matrix,
+                projectionMatrix=projection_matrix,
+                renderer=self.p.ER_BULLET_HARDWARE_OPENGL
+            )
+
+            images.append(rgb)
+            depths.append(depth)
+            masks.append(segm)
+
+        f,b,l,r = images
+        f = f[:,:,:3]
+        b = b[:,:,:3]
+        l = l[:,:,:3]
+        r = r[:,:,:3]
+        rgb_strip = np.concatenate([l,f,r,b], axis=1)
+        rgb_strip = np.concatenate(
+            [rgb_strip[:,-resolution//2:], rgb_strip[:,:-resolution//2]],
+            axis=1,
+        )
+
+        return rgb_strip
