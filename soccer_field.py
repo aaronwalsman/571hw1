@@ -2,14 +2,15 @@ import pybullet as p
 import pybullet_data
 import numpy as np
 import matplotlib.pyplot as plt
-from sympy import diff, sin, atan2, exp
-from sympy.abc import x,y
-from utils import minimized_angle
-from sympy import Symbol
-
 
 from utils import minimized_angle
 
+try:
+    import torch
+    from observation_model import ObservationModel
+    torch_available = True
+except ImportError:
+    torch_available = False
 
 class Field:
     NUM_MARKERS = 6
@@ -50,7 +51,14 @@ class Field:
     }
 
 
-    def __init__(self, alphas, beta, gui=True):
+    def __init__(
+        self,
+        alphas,
+        beta,
+        gui=True,
+        use_learned_observation_model=False,
+        device='cuda',
+    ):
         self.alphas = alphas
         self.beta = beta
         # initialize pybullet environment
@@ -61,6 +69,15 @@ class Field:
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.setGravity(0,0,-10)
         self.p = p
+        
+        self.use_learned_observation_model = use_learned_observation_model
+        if use_learned_observation_model:
+            assert torch_available
+            self.device = device
+            self.observation_model = ObservationModel().to(device)
+            state_dict = torch.load(
+                use_learned_observation_model, map_location=device)
+            self.observation_model.load_state_dict(state_dict)
 
     def G(self, x, u):
         """Compute the Jacobian of the dynamics with respect to the state."""
@@ -186,11 +203,24 @@ class Field:
         marker_id: int
         beta: noise parameters for landmark observation model (default: data beta)
         """
-        if beta is None:
-            beta = self.beta
-
-        z = self.observe(x, marker_id)
-        return np.random.multivariate_normal(z.ravel(), beta).reshape((-1, 1))
+        if self.use_learned_observation_model:
+            x = torch.FloatTensor(x).to(self.device).view(1,3)
+            with torch.no_grad():
+                z = self.observation_model(x)
+                if z.shape[-1] == 12:
+                    z = torch.atan2(z[:,6:], z[:,:6])
+                z = z.view(-1).cpu().numpy()
+                z = z[marker_id-1].reshape(-1,1)
+                
+            return z
+        
+        else:
+            if beta is None:
+                beta = self.beta
+            
+            z = self.observe(x, marker_id)
+            return np.random.multivariate_normal(
+                z.ravel(), beta).reshape((-1, 1))
 
     def get_figure(self):
         return plt.figure(1)

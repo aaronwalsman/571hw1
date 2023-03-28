@@ -158,6 +158,14 @@ def setup_parser():
         '--num-particles', type=int, default=100,
         help='number of particles (particle filter only)')
     
+    # Learned Observation Model
+    parser.add_argument(
+        '--use-learned-observation-model', type=str, default=False,
+        help='checkpoint for a learned observation model')
+    parser.add_argument(
+        '--device', type=str, default='cuda',
+        help='device for the learned observation model')
+    
     # Debugging arguments
     parser.add_argument(
         '--step-pause', type=float, default=0.,
@@ -184,6 +192,8 @@ if __name__ == '__main__':
         args.data_factor * alphas,
         args.data_factor * beta,
         gui=args.plot,
+        use_learned_observation_model=args.use_learned_observation_model,
+        device=args.device,
     )
     policy = policies.OpenLoopRectanglePolicy()
 
