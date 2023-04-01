@@ -144,7 +144,10 @@ def setup_parser():
         '--use-learned-observation-model', type=str, default=False,
         help='checkpoint for a learned observation model')
     parser.add_argument(
-        '--device', type=str, default='cuda',
+        '--supervision-mode', type=str, default='',
+        help='phi|xy')
+    parser.add_argument(
+        '--device', type=str, default='cpu',
         help='device for the learned observation model')
     
     # Debugging arguments
@@ -168,12 +171,16 @@ if __name__ == '__main__':
 
     alphas = np.array([0.05**2, 0.005**2, 0.1**2, 0.01**2])
     beta = np.diag([np.deg2rad(5)**2])
-
+    
+    if args.use_learned_observation_model:
+        assert supervision_mode in ('xy', 'phi')
+    
     env = Field(
         args.data_factor * alphas,
         args.data_factor * beta,
         gui=args.plot,
         use_learned_observation_model=args.use_learned_observation_model,
+        supervision_mode=args.supervision_mode
         device=args.device,
     )
     policy = policies.OpenLoopRectanglePolicy()

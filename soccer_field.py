@@ -57,6 +57,7 @@ class Field:
         beta,
         gui=True,
         use_learned_observation_model=False,
+        supervision_mode='',
         device='cuda',
     ):
         self.alphas = alphas
@@ -78,7 +79,12 @@ class Field:
         if use_learned_observation_model:
             assert torch_available
             self.device = device
-            self.observation_model = ObservationModel().to(device)
+            if self.supervision_mode == 'phi':
+                output_channels = 6
+            elif self.supervision_mode == 'xy':
+                output_channels = 12
+            self.observation_model = ObservationModel(
+                output_channels).to(device)
             state_dict = torch.load(
                 use_learned_observation_model, map_location=device)
             self.observation_model.load_state_dict(state_dict)
