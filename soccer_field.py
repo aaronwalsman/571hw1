@@ -76,6 +76,7 @@ class Field:
         self.add_robot()
         
         self.use_learned_observation_model = use_learned_observation_model
+        self.supervision_mode = supervision_mode
         if use_learned_observation_model:
             assert torch_available
             self.device = device

@@ -173,14 +173,14 @@ if __name__ == '__main__':
     beta = np.diag([np.deg2rad(5)**2])
     
     if args.use_learned_observation_model:
-        assert supervision_mode in ('xy', 'phi')
+        assert args.supervision_mode in ('xy', 'phi')
     
     env = Field(
         args.data_factor * alphas,
         args.data_factor * beta,
         gui=args.plot,
         use_learned_observation_model=args.use_learned_observation_model,
-        supervision_mode=args.supervision_mode
+        supervision_mode=args.supervision_mode,
         device=args.device,
     )
     policy = policies.OpenLoopRectanglePolicy()
